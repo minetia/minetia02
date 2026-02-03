@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>주군 5G 정밀 통합 지휘소</title>
+    <title>주군 페이징 통합 지휘소</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Pretendard', sans-serif; background: #f8faff; color: #333; margin: 0; padding: 0; text-align: center; }
@@ -16,7 +16,6 @@
             background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px);
             position: sticky; top: 0; z-index: 1000;
         }
-        /* 우측 정보 결속 구역 */
         .right-status { display: flex; align-items: center; gap: 5px; }
         .signal-bars { display: flex; align-items: flex-end; gap: 1.5px; height: 13px; margin: 0 2px; }
         .bar { width: 3px; background: #000; border-radius: 1px; }
@@ -24,9 +23,16 @@
         #total-balance { font-size: 45px; font-weight: 900; margin: 25px 0 10px 0; color: #222; letter-spacing: -1.5px; }
         .config-box { background: white; border-radius: 20px; padding: 12px; margin: 15px 0; border: 1px solid #eee; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .config-input { width: 90px; padding: 6px; border: 2px solid #d4af37; border-radius: 10px; font-weight: bold; text-align: center; font-size: 16px; outline: none; }
+        
         .chart-box { background: white; border-radius: 30px; padding: 15px; margin: 15px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.03); height: 200px; border: 1px solid #f0f0f0; }
         .btn-group { display: flex; gap: 10px; margin-bottom: 25px; }
         .btn { flex: 1; height: 60px; border-radius: 18px; border: none; font-weight: bold; color: white; cursor: pointer; font-size: 15px; }
+
+        /* 🔢 페이징 숫자 표시 디자인 */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; padding-bottom: 30px; }
+        .page-btn { padding: 8px 15px; border-radius: 10px; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: bold; }
+        .page-btn.active { background: #d4af37; color: white; border-color: #d4af37; }
+        .page-btn:disabled { opacity: 0.3; cursor: default; }
 
         #emergency-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -75,13 +81,17 @@
             <button class="btn" style="background:#03cf5d;" onclick="run('N페이')">네이버페이</button>
             <button class="btn" style="background:#d4af37;" onclick="run('수혈')">리워드 수혈</button>
         </div>
+
         <div id="history-box"></div>
+        <div id="pagination" class="pagination"></div>
     </div>
 
     <script>
-        let balance = localStorage.getItem('bal_v12') ? parseInt(localStorage.getItem('bal_v12')) : 427985;
-        let logs = localStorage.getItem('logs_v12') ? JSON.parse(localStorage.getItem('logs_v12')) : [];
-        let limit = localStorage.getItem('limit_v12') ? parseInt(localStorage.getItem('limit_v12')) : 4000;
+        let balance = localStorage.getItem('bal_v13') ? parseInt(localStorage.getItem('bal_v13')) : 427985;
+        let logs = localStorage.getItem('logs_v13') ? JSON.parse(localStorage.getItem('logs_v13')) : [];
+        let limit = localStorage.getItem('limit_v13') ? parseInt(localStorage.getItem('limit_v13')) : 4000;
+        let currentPage = 1;
+        const itemsPerPage = 10;
         let myChart, siren, audioCtx;
 
         function init() {
@@ -96,19 +106,83 @@
             try {
                 const battery = await navigator.getBattery();
                 document.getElementById('phone-battery').innerText = `${Math.round(battery.level * 100)}%`;
-                const s = document.getElementById('signal-strength');
-                s.style.opacity = Math.random() > 0.1 ? "1" : "0.4";
+                document.getElementById('signal-strength').style.opacity = Math.random() > 0.1 ? "1" : "0.4";
             } catch (e) {}
         }
         
-        function saveLimit() { limit = parseInt(document.getElementById('alert-limit').value); localStorage.setItem('limit_v12', limit); }
+        function saveLimit() { limit = parseInt(document.getElementById('alert-limit').value); localStorage.setItem('limit_v13', limit); }
         function startEngine() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
         function playSiren() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.15); }
-        function run(type) { startEngine(); const amtStr = prompt(`[${type}] 금액 입력`); if (amtStr && !isNaN(amtStr)) { const amt = parseInt(amtStr); if (type !== '수혈' && amt >= limit) { document.getElementById('msg').innerText = `${amt.toLocaleString()}원 유출 감지!`; document.getElementById('emergency-overlay').style.display = 'flex'; siren = setInterval(playSiren, 500); if(navigator.vibrate) navigator.vibrate([1000, 500, 1000]); } balance = (type === '수혈') ? balance + amt : balance - amt; logs.unshift({ type, amt: (type==='수혈'?'+':'-')+amt.toLocaleString()+"원", time: new Date().toLocaleTimeString().slice(0,8), val: balance }); localStorage.setItem('bal_v12', balance); localStorage.setItem('logs_v12', JSON.stringify(logs)); render(); updateChart(); } }
+
+        function run(type) {
+            startEngine();
+            const amtStr = prompt(`[${type}] 금액 입력`);
+            if (amtStr && !isNaN(amtStr)) {
+                const amt = parseInt(amtStr);
+                if (type !== '수혈' && amt >= limit) {
+                    document.getElementById('msg').innerText = `${amt.toLocaleString()}원 유출 감지!`;
+                    document.getElementById('emergency-overlay').style.display = 'flex';
+                    siren = setInterval(playSiren, 500);
+                    if(navigator.vibrate) navigator.vibrate([1000, 500, 1000]);
+                }
+                balance = (type === '수혈') ? balance + amt : balance - amt;
+                logs.unshift({ type, amt: (type==='수혈'?'+':'-')+amt.toLocaleString()+"원", time: new Date().toLocaleTimeString().slice(0,8), val: balance });
+                localStorage.setItem('bal_v13', balance);
+                localStorage.setItem('logs_v13', JSON.stringify(logs));
+                currentPage = 1; // 새 입력 시 첫 페이지로 이동
+                render(); updateChart();
+            }
+        }
+
         function closeEmergency() { document.getElementById('emergency-overlay').style.display = 'none'; clearInterval(siren); }
-        function initChart() { const ctx = document.getElementById('assetChart').getContext('2d'); myChart = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: '#d4af37', tension: 0.4, fill: true, backgroundColor: 'rgba(212,175,55,0.05)', borderWidth: 4, pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true } } } }); updateChart(); }
-        function updateChart() { const d = logs.slice(0, 7).reverse(); myChart.data.labels = d.map(l => l.time); myChart.data.datasets[0].data = d.map(l => l.val); myChart.update(); }
-        function render() { document.getElementById('total-balance').innerText = balance.toLocaleString() + "원"; const box = document.getElementById('history-box'); box.innerHTML = ''; logs.slice(0, 10).forEach(l => { const c = l.amt.includes('+') ? '#00c853' : '#ff4d4f'; box.innerHTML += `<div style="background:white; border-radius:18px; padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; border:1px solid #f9f9f9;"><div><b>${l.type}</b><br><small style="color:#aaa;">${l.time}</small></div><div style="font-size:18px; font-weight:900; color:${c}">${l.amt}</div></div>`; }); }
+
+        function render() {
+            document.getElementById('total-balance').innerText = balance.toLocaleString() + "원";
+            const box = document.getElementById('history-box');
+            box.innerHTML = '';
+            
+            const start = (currentPage - 1) * itemsPerPage;
+            const pagedLogs = logs.slice(start, start + itemsPerPage);
+
+            pagedLogs.forEach(l => {
+                const c = l.amt.includes('+') ? '#00c853' : '#ff4d4f';
+                box.innerHTML += `<div style="background:white; border-radius:18px; padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; border:1px solid #f9f9f9;"><div><b>${l.type}</b><br><small style="color:#aaa;">${l.time}</small></div><div style="font-size:18px; font-weight:900; color:${c}">${l.amt}</div></div>`;
+            });
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const nav = document.getElementById('pagination');
+            nav.innerHTML = '';
+            const totalPages = Math.ceil(logs.length / itemsPerPage);
+            if (totalPages <= 1) return;
+
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.innerText = i;
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = (e) => { e.stopPropagation(); currentPage = i; render(); };
+                nav.appendChild(btn);
+            }
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('assetChart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [{ data: [], borderColor: '#d4af37', tension: 0.4, fill: true, backgroundColor: 'rgba(212,175,55,0.05)', borderWidth: 4, pointRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true } } }
+            });
+            updateChart();
+        }
+
+        function updateChart() {
+            const d = logs.slice(0, 7).reverse();
+            myChart.data.labels = d.map(l => l.time);
+            myChart.data.datasets[0].data = d.map(l => l.val);
+            myChart.update();
+        }
     </script>
 </body>
 </html>
