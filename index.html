@@ -3,164 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 완전 보안 지휘소</title>
+    <title>주군 5G 정밀 통합 지휘소</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --gold: #d4af37; --danger: #ff4d4f; --k-blue: #3b79db; --n-green: #03cf5d; --success: #00c853; }
-        body { font-family: 'Pretendard', sans-serif; background: #f0f3f8; margin: 0; padding-bottom: 80px; transition: background 0.2s; overflow-x: hidden; }
+        body { font-family: 'Pretendard', sans-serif; background: #f8faff; color: #333; margin: 0; padding: 0; text-align: center; }
+        .container { max-width: 500px; margin: 0 auto; padding: 10px 20px; }
         
-        /* 🕵️ 은폐 보안 스타일 */
-        .maskable { filter: blur(12px); opacity: 0.1; transition: 0.4s; cursor: pointer; user-select: none; }
-        .maskable.active { filter: blur(0); opacity: 1; }
+        /* 📱 우측 밀착형 시스템 상태바 */
+        .system-bar { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 10px 18px; font-weight: 600; font-size: 14px; color: #000;
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px);
+            position: sticky; top: 0; z-index: 1000;
+        }
+        /* 우측 정보 결속 구역 */
+        .right-status { display: flex; align-items: center; gap: 5px; }
+        .signal-bars { display: flex; align-items: flex-end; gap: 1.5px; height: 13px; margin: 0 2px; }
+        .bar { width: 3px; background: #000; border-radius: 1px; }
 
-        .system-bar { background: #fff; padding: 12px 20px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; border-bottom: 1px solid #eee; }
-        .kbank-header { background: #fff; padding: 25px 20px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; text-align: center; }
-        .acc-balance { font-size: 34px; font-weight: 900; color: #222; letter-spacing: -1.5px; margin-top: 5px; }
-        
-        .config-area { background: #fff; margin: 15px; padding: 18px; border-radius: 20px; font-size: 14px; font-weight: bold; color: var(--danger); box-shadow: 0 4px 15px rgba(255, 77, 79, 0.1); text-align: center; border: 1px solid rgba(255, 77, 79, 0.2); cursor: pointer; }
-        .chart-container { background: #fff; margin: 0 15px 15px 15px; padding: 20px; border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 15px; }
-        .btn { padding: 16px 5px; border-radius: 12px; text-align: center; font-weight: 800; border: none; color: #fff; cursor: pointer; font-size: 12px; }
-        .history-item { background: white; border-radius: 20px; padding: 20px; margin: 12px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
+        #total-balance { font-size: 45px; font-weight: 900; margin: 25px 0 10px 0; color: #222; letter-spacing: -1.5px; }
+        .config-box { background: white; border-radius: 20px; padding: 12px; margin: 15px 0; border: 1px solid #eee; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .config-input { width: 90px; padding: 6px; border: 2px solid #d4af37; border-radius: 10px; font-weight: bold; text-align: center; font-size: 16px; outline: none; }
+        .chart-box { background: white; border-radius: 30px; padding: 15px; margin: 15px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.03); height: 200px; border: 1px solid #f0f0f0; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 25px; }
+        .btn { flex: 1; height: 60px; border-radius: 18px; border: none; font-weight: bold; color: white; cursor: pointer; font-size: 15px; }
 
-        /* 🔢 페이징 버튼 스타일 */
-        .pagination { display: flex; justify-content: center; gap: 8px; margin: 20px 0; }
-        .page-btn { padding: 8px 12px; border-radius: 8px; background: #fff; border: 1px solid #ddd; font-weight: bold; cursor: pointer; font-size: 12px; }
-        .page-btn.active { background: var(--gold); color: white; border-color: var(--gold); }
+        #emergency-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ff0000; color: white; z-index: 9999; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .confirm-btn { margin-top: 40px; padding: 20px 80px; background: white; color: red; border-radius: 50px; border: none; font-size: 22px; font-weight: 900; }
     </style>
 </head>
-<body onclick="activateSecurity()" onload="initApp()">
+<body onload="init()">
 
-    <audio id="siren-sound" loop>
-        <source src="https://actions.google.com/sounds/v1/alarms/emergency_it_is_broken.ogg" type="audio/ogg">
-    </audio>
-
-    <div class="system-bar" onclick="toggleAllMasks()">
-        <span id="live-time">연동 중...</span>
-        <span>🔋 <span id="bat-level" class="maskable">--%</span></span>
+    <div id="emergency-overlay">
+        <h1 style="font-size: 100px; margin: 0;">🚨</h1>
+        <h2 style="font-size: 36px; margin: 20px 0;">긴급 안보 위기!</h2>
+        <p id="msg" style="font-size: 22px; font-weight: bold;"></p>
+        <button class="confirm-btn" onclick="closeEmergency()">상황 확인</button>
     </div>
 
-    <div class="kbank-header">
-        <div style="font-size:11px; color:#888; margin-bottom:5px;">🔱 이중 가로채기 지휘소</div>
-        <div id="total-balance" class="acc-balance maskable" onclick="toggleAllMasks()">477,785원</div>
+    <div class="system-bar">
+        <div id="phone-time">00:00</div>
+        <div class="right-status">
+            <span style="font-size: 12px; font-weight: 900;">5G</span>
+            <div class="signal-bars">
+                <div class="bar" style="height: 35%;"></div>
+                <div class="bar" style="height: 55%;"></div>
+                <div class="bar" style="height: 75%;"></div>
+                <div class="bar" id="signal-strength" style="height: 100%;"></div>
+            </div>
+            <span id="phone-battery">100%</span>
+        </div>
     </div>
 
-    <div class="config-area" onclick="setLimit()">
-        🚨 진동 기준: <span id="limit-display">4,000</span>원
-        <div style="font-size:10px; color:#aaa; margin-top:3px;">(4,000원 이상 지출 시 무한 폭주)</div>
-    </div>
+    <div class="container" onclick="startEngine()">
+        <div style="font-size: 13px; color: #d4af37; font-weight: bold; margin-top: 15px;">🔱 주군 5G 안보 본진</div>
+        <div id="total-balance">427,985원</div>
+        
+        <div class="config-box">
+            <span style="font-size: 15px; font-weight: bold;">🚨 경보 기준:</span>
+            <input type="number" id="alert-limit" class="config-input" value="4000" onchange="saveLimit()">
+            <span style="font-size: 15px; font-weight: bold;">원</span>
+        </div>
 
-    <div class="chart-container">
-        <canvas id="assetChart" height="150"></canvas>
-    </div>
+        <div class="chart-box"><canvas id="assetChart"></canvas></div>
 
-    <div class="btn-group">
-        <div class="btn" style="background:var(--k-blue);" onclick="run('K-BANK 이체')">K뱅크 이체</div>
-        <div class="btn" style="background:var(--n-green);" onclick="run('N페이 결제')">N페이 결제</div>
-        <div class="btn" style="background:var(--gold);" onclick="run('리워드 수혈')">리워드 수혈</div>
+        <div class="btn-group">
+            <button class="btn" style="background:#4a6cf7;" onclick="run('K-BANK')">케이뱅크</button>
+            <button class="btn" style="background:#03cf5d;" onclick="run('N페이')">네이버페이</button>
+            <button class="btn" style="background:#d4af37;" onclick="run('수혈')">리워드 수혈</button>
+        </div>
+        <div id="history-box"></div>
     </div>
-
-    <div id="history-box" style="margin-top: 20px;"></div>
-    <div id="pagination" class="pagination"></div>
 
     <script>
-        let balance = localStorage.getItem('balance') ? parseInt(localStorage.getItem('balance')) : 477785;
-        let logs = localStorage.getItem('logs') ? JSON.parse(localStorage.getItem('logs')) : [];
-        let alertLimit = localStorage.getItem('alertLimit') ? parseInt(localStorage.getItem('alertLimit')) : 4000;
-        let currentPage = 1;
-        const itemsPerPage = 10;
-        let infiniteVib, assetChart, isActivated = false;
+        let balance = localStorage.getItem('bal_v12') ? parseInt(localStorage.getItem('bal_v12')) : 427985;
+        let logs = localStorage.getItem('logs_v12') ? JSON.parse(localStorage.getItem('logs_v12')) : [];
+        let limit = localStorage.getItem('limit_v12') ? parseInt(localStorage.getItem('limit_v12')) : 4000;
+        let myChart, siren, audioCtx;
 
-        function toggleAllMasks() {
-            document.querySelectorAll('.maskable').forEach(el => el.classList.toggle('active'));
+        function init() {
+            document.getElementById('alert-limit').value = limit;
+            render(); initChart(); updateStatus();
+            setInterval(updateStatus, 1000);
         }
 
-        function initApp() {
-            renderUI();
-            initChart();
-            document.getElementById('limit-display').innerText = alertLimit.toLocaleString();
-            setInterval(syncSystem, 1000);
-            setInterval(autoMonitor, 5000); // K뱅크 & N페이 가로채기 엔진
+        async function updateStatus() {
+            const now = new Date();
+            document.getElementById('phone-time').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            try {
+                const battery = await navigator.getBattery();
+                document.getElementById('phone-battery').innerText = `${Math.round(battery.level * 100)}%`;
+                const s = document.getElementById('signal-strength');
+                s.style.opacity = Math.random() > 0.1 ? "1" : "0.4";
+            } catch (e) {}
         }
-
-        function triggerInfiniteSiren(type, amount) {
-            document.body.style.backgroundColor = "red";
-            document.getElementById('siren-sound').play().catch(() => {});
-            const pattern = [1000, 200, 1000, 200, 1000]; 
-            if (navigator.vibrate) {
-                navigator.vibrate(pattern);
-                infiniteVib = setInterval(() => { navigator.vibrate(pattern); }, 1200);
-            }
-            setTimeout(() => {
-                alert(`🚨 [긴급 가로채기]\n${type}: ${amount.toLocaleString()}원 지출!\n확인 전까지 무한 진동합니다.`);
-                stopSiren();
-            }, 200);
-        }
-
-        function stopSiren() {
-            clearInterval(infiniteVib);
-            if (navigator.vibrate) navigator.vibrate(0);
-            document.getElementById('siren-sound').pause();
-            document.body.style.backgroundColor = "#f0f3f8";
-            location.reload();
-        }
-
-        function renderUI() {
-            document.getElementById('total-balance').innerText = balance.toLocaleString() + "원";
-            const box = document.getElementById('history-box');
-            box.innerHTML = '';
-            
-            const start = (currentPage - 1) * itemsPerPage;
-            const paginatedLogs = logs.slice(start, start + itemsPerPage);
-
-            paginatedLogs.forEach(log => {
-                box.innerHTML += `<div class="history-item"><div><b>${log.type}</b><br><small>${log.time}</small></div><div style="font-size:18px; font-weight:900; color:${log.color}">${log.amt}</div></div>`;
-            });
-            renderPagination();
-        }
-
-        function renderPagination() {
-            const pgBox = document.getElementById('pagination');
-            pgBox.innerHTML = '';
-            const totalPages = Math.ceil(logs.length / itemsPerPage);
-            if (totalPages <= 1) return;
-
-            for (let i = 1; i <= totalPages; i++) {
-                const btn = document.createElement('button');
-                btn.innerText = i;
-                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-                btn.onclick = () => { currentPage = i; renderUI(); window.scrollTo(0, 400); };
-                pgBox.appendChild(btn);
-            }
-        }
-
-        function run(type) {
-            const amountStr = prompt(`[${type}] 금액 입력:`);
-            if (amountStr && !isNaN(amountStr)) {
-                const amount = parseInt(amountStr);
-                const isPlus = type === '리워드 수혈';
-                if (!isPlus && amount >= alertLimit) triggerInfiniteSiren(type, amount);
-                balance = isPlus ? balance + amount : balance - amount;
-                logs.unshift({ type, amt: (isPlus?'+':'-')+amount.toLocaleString()+"원", time: new Date().toLocaleTimeString(), bal: balance, color: isPlus?'var(--success)':'var(--danger)' });
-                localStorage.setItem('balance', balance);
-                localStorage.setItem('logs', JSON.stringify(logs));
-                location.reload();
-            }
-        }
-
-        function initChart() {
-            const ctx = document.getElementById('assetChart').getContext('2d');
-            const data = logs.slice(0, 10).map(l => l.bal).reverse();
-            if(!data.length) data.push(balance);
-            new Chart(ctx, { type: 'line', data: { labels: data.map(()=>''), datasets: [{ data: data, borderColor: '#d4af37', tension: 0.4, fill: true, backgroundColor: 'rgba(212, 175, 55, 0.1)' }] }, options: { plugins: { legend: { display: false } } } });
-        }
-
-        function syncSystem() {
-            document.getElementById('live-time').innerText = new Date().toLocaleTimeString();
-            if (navigator.getBattery) navigator.getBattery().then(bat => { document.getElementById('bat-level').innerText = Math.floor(bat.level * 100) + "%"; });
-        }
-
-        function activateSecurity() { if (!isActivated) { isActivated = true; if(navigator.vibrate) navigator.vibrate(10); } }
+        
+        function saveLimit() { limit = parseInt(document.getElementById('alert-limit').value); localStorage.setItem('limit_v12', limit); }
+        function startEngine() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+        function playSiren() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.15); }
+        function run(type) { startEngine(); const amtStr = prompt(`[${type}] 금액 입력`); if (amtStr && !isNaN(amtStr)) { const amt = parseInt(amtStr); if (type !== '수혈' && amt >= limit) { document.getElementById('msg').innerText = `${amt.toLocaleString()}원 유출 감지!`; document.getElementById('emergency-overlay').style.display = 'flex'; siren = setInterval(playSiren, 500); if(navigator.vibrate) navigator.vibrate([1000, 500, 1000]); } balance = (type === '수혈') ? balance + amt : balance - amt; logs.unshift({ type, amt: (type==='수혈'?'+':'-')+amt.toLocaleString()+"원", time: new Date().toLocaleTimeString().slice(0,8), val: balance }); localStorage.setItem('bal_v12', balance); localStorage.setItem('logs_v12', JSON.stringify(logs)); render(); updateChart(); } }
+        function closeEmergency() { document.getElementById('emergency-overlay').style.display = 'none'; clearInterval(siren); }
+        function initChart() { const ctx = document.getElementById('assetChart').getContext('2d'); myChart = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: '#d4af37', tension: 0.4, fill: true, backgroundColor: 'rgba(212,175,55,0.05)', borderWidth: 4, pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true } } } }); updateChart(); }
+        function updateChart() { const d = logs.slice(0, 7).reverse(); myChart.data.labels = d.map(l => l.time); myChart.data.datasets[0].data = d.map(l => l.val); myChart.update(); }
+        function render() { document.getElementById('total-balance').innerText = balance.toLocaleString() + "원"; const box = document.getElementById('history-box'); box.innerHTML = ''; logs.slice(0, 10).forEach(l => { const c = l.amt.includes('+') ? '#00c853' : '#ff4d4f'; box.innerHTML += `<div style="background:white; border-radius:18px; padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; border:1px solid #f9f9f9;"><div><b>${l.type}</b><br><small style="color:#aaa;">${l.time}</small></div><div style="font-size:18px; font-weight:900; color:${c}">${l.amt}</div></div>`; }); }
     </script>
 </body>
 </html>
