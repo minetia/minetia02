@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>주군 AI 완전 은폐 지휘소</title>
+    <title>AI 완전 보안 지휘소</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --gold: #d4af37; --danger: #ff4d4f; --k-blue: #3b79db; --n-green: #03cf5d; --success: #00c853; }
         body { font-family: 'Pretendard', sans-serif; background: #f0f3f8; margin: 0; padding-bottom: 80px; transition: background 0.2s; overflow-x: hidden; }
         
-        /* 🕵️ 완전 은폐 스타일: 터치 전 블러 및 투명도 조절 */
-        .maskable { filter: blur(12px); opacity: 0.1; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; user-select: none; }
+        /* 🕵️ 은폐 보안 스타일 */
+        .maskable { filter: blur(12px); opacity: 0.1; transition: 0.4s; cursor: pointer; user-select: none; }
         .maskable.active { filter: blur(0); opacity: 1; }
 
         .system-bar { background: #fff; padding: 12px 20px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; border-bottom: 1px solid #eee; }
@@ -22,6 +22,11 @@
         .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 15px; }
         .btn { padding: 16px 5px; border-radius: 12px; text-align: center; font-weight: 800; border: none; color: #fff; cursor: pointer; font-size: 12px; }
         .history-item { background: white; border-radius: 20px; padding: 20px; margin: 12px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
+
+        /* 🔢 페이징 버튼 스타일 */
+        .pagination { display: flex; justify-content: center; gap: 8px; margin: 20px 0; }
+        .page-btn { padding: 8px 12px; border-radius: 8px; background: #fff; border: 1px solid #ddd; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .page-btn.active { background: var(--gold); color: white; border-color: var(--gold); }
     </style>
 </head>
 <body onclick="activateSecurity()" onload="initApp()">
@@ -36,14 +41,13 @@
     </div>
 
     <div class="kbank-header">
-        <div style="font-size:11px; color:#888; margin-bottom:5px;">🔱 주군 전용 완전 은폐 보안 모드</div>
+        <div style="font-size:11px; color:#888; margin-bottom:5px;">🔱 이중 가로채기 지휘소</div>
         <div id="total-balance" class="acc-balance maskable" onclick="toggleAllMasks()">477,785원</div>
-        <div style="font-size:10px; color:var(--success); font-weight:bold; margin-top:5px;">● AI 이중 가로채기 엔진 가동 중</div>
     </div>
 
     <div class="config-area" onclick="setLimit()">
-        🚨 진동 알람 기준: <span id="limit-display">100,000</span>원
-        <div style="font-size:10px; color:#aaa; margin-top:3px;">(클릭하여 수정)</div>
+        🚨 진동 기준: <span id="limit-display">4,000</span>원
+        <div style="font-size:10px; color:#aaa; margin-top:3px;">(4,000원 이상 지출 시 무한 폭주)</div>
     </div>
 
     <div class="chart-container">
@@ -57,18 +61,18 @@
     </div>
 
     <div id="history-box" style="margin-top: 20px;"></div>
+    <div id="pagination" class="pagination"></div>
 
     <script>
-        const secure_account = "100164750144";
         let balance = localStorage.getItem('balance') ? parseInt(localStorage.getItem('balance')) : 477785;
         let logs = localStorage.getItem('logs') ? JSON.parse(localStorage.getItem('logs')) : [];
-        let alertLimit = localStorage.getItem('alertLimit') ? parseInt(localStorage.getItem('alertLimit')) : 100000;
+        let alertLimit = localStorage.getItem('alertLimit') ? parseInt(localStorage.getItem('alertLimit')) : 4000;
+        let currentPage = 1;
+        const itemsPerPage = 10;
         let infiniteVib, assetChart, isActivated = false;
 
-        // 🕵️ 모든 마스크 동시 제어
         function toggleAllMasks() {
-            const masks = document.querySelectorAll('.maskable');
-            masks.forEach(el => el.classList.toggle('active'));
+            document.querySelectorAll('.maskable').forEach(el => el.classList.toggle('active'));
         }
 
         function initApp() {
@@ -76,16 +80,7 @@
             initChart();
             document.getElementById('limit-display').innerText = alertLimit.toLocaleString();
             setInterval(syncSystem, 1000);
-            setInterval(autoMonitor, 5000); // 5초마다 이중 가로채기
-        }
-
-        function syncSystem() {
-            document.getElementById('live-time').innerText = new Date().toLocaleTimeString();
-            if (navigator.getBattery) {
-                navigator.getBattery().then(bat => {
-                    document.getElementById('bat-level').innerText = Math.floor(bat.level * 100) + "%";
-                });
-            }
+            setInterval(autoMonitor, 5000); // K뱅크 & N페이 가로채기 엔진
         }
 
         function triggerInfiniteSiren(type, amount) {
@@ -97,7 +92,7 @@
                 infiniteVib = setInterval(() => { navigator.vibrate(pattern); }, 1200);
             }
             setTimeout(() => {
-                alert(`🚨 [긴급 가로채기]\n${type}: ${amount.toLocaleString()}원 유출!\n확인 전까지 무한 진동합니다.`);
+                alert(`🚨 [긴급 가로채기]\n${type}: ${amount.toLocaleString()}원 지출!\n확인 전까지 무한 진동합니다.`);
                 stopSiren();
             }, 200);
         }
@@ -110,8 +105,37 @@
             location.reload();
         }
 
+        function renderUI() {
+            document.getElementById('total-balance').innerText = balance.toLocaleString() + "원";
+            const box = document.getElementById('history-box');
+            box.innerHTML = '';
+            
+            const start = (currentPage - 1) * itemsPerPage;
+            const paginatedLogs = logs.slice(start, start + itemsPerPage);
+
+            paginatedLogs.forEach(log => {
+                box.innerHTML += `<div class="history-item"><div><b>${log.type}</b><br><small>${log.time}</small></div><div style="font-size:18px; font-weight:900; color:${log.color}">${log.amt}</div></div>`;
+            });
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const pgBox = document.getElementById('pagination');
+            pgBox.innerHTML = '';
+            const totalPages = Math.ceil(logs.length / itemsPerPage);
+            if (totalPages <= 1) return;
+
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.innerText = i;
+                btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                btn.onclick = () => { currentPage = i; renderUI(); window.scrollTo(0, 400); };
+                pgBox.appendChild(btn);
+            }
+        }
+
         function run(type) {
-            const amountStr = prompt(`[${type}] 금액을 입력하십시오.`);
+            const amountStr = prompt(`[${type}] 금액 입력:`);
             if (amountStr && !isNaN(amountStr)) {
                 const amount = parseInt(amountStr);
                 const isPlus = type === '리워드 수혈';
@@ -119,17 +143,9 @@
                 balance = isPlus ? balance + amount : balance - amount;
                 logs.unshift({ type, amt: (isPlus?'+':'-')+amount.toLocaleString()+"원", time: new Date().toLocaleTimeString(), bal: balance, color: isPlus?'var(--success)':'var(--danger)' });
                 localStorage.setItem('balance', balance);
-                localStorage.setItem('logs', JSON.stringify(logs.slice(0, 50)));
+                localStorage.setItem('logs', JSON.stringify(logs));
                 location.reload();
             }
-        }
-
-        function renderUI() {
-            document.getElementById('total-balance').innerText = balance.toLocaleString() + "원";
-            const box = document.getElementById('history-box');
-            logs.forEach(log => {
-                box.innerHTML += `<div class="history-item"><div><b>${log.type}</b><br><small>${log.time}</small></div><div style="font-size:18px; font-weight:900; color:${log.color}">${log.amt}</div></div>`;
-            });
         }
 
         function initChart() {
@@ -139,21 +155,12 @@
             new Chart(ctx, { type: 'line', data: { labels: data.map(()=>''), datasets: [{ data: data, borderColor: '#d4af37', tension: 0.4, fill: true, backgroundColor: 'rgba(212, 175, 55, 0.1)' }] }, options: { plugins: { legend: { display: false } } } });
         }
 
-        function setLimit() {
-            const val = prompt("진동 알람 기준 금액을 입력하십시오.", alertLimit);
-            if(val && !isNaN(val)) {
-                alertLimit = parseInt(val);
-                localStorage.setItem('alertLimit', alertLimit);
-                document.getElementById('limit-display').innerText = alertLimit.toLocaleString();
-            }
+        function syncSystem() {
+            document.getElementById('live-time').innerText = new Date().toLocaleTimeString();
+            if (navigator.getBattery) navigator.getBattery().then(bat => { document.getElementById('bat-level').innerText = Math.floor(bat.level * 100) + "%"; });
         }
 
-        function activateSecurity() {
-            if (!isActivated) {
-                isActivated = true;
-                if(navigator.vibrate) navigator.vibrate(10);
-            }
-        }
+        function activateSecurity() { if (!isActivated) { isActivated = true; if(navigator.vibrate) navigator.vibrate(10); } }
     </script>
 </body>
 </html>
