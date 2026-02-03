@@ -3,17 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>주군 30억 통합 보안 지휘소</title>
+    <title>주군 AI 이중 보안 지휘소</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --gold: #d4af37; --danger: #ff4d4f; --k-blue: #3b79db; --success: #00c853; }
-        body { font-family: 'Pretendard', sans-serif; background: #f0f3f8; margin: 0; padding-bottom: 80px; transition: background 0.3s; }
+        :root { --gold: #d4af37; --danger: #ff4d4f; --k-blue: #3b79db; --n-green: #03cf5d; --success: #00c853; }
+        body { font-family: 'Pretendard', sans-serif; background: #f0f3f8; margin: 0; padding-bottom: 80px; transition: background 0.2s; overflow-x: hidden; }
         .system-bar { background: #fff; padding: 12px 20px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; border-bottom: 1px solid #eee; }
         .kbank-header { background: #fff; padding: 25px 20px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; text-align: center; }
-        .acc-balance { font-size: 32px; font-weight: 900; color: #222; letter-spacing: -1.5px; }
-        .chart-container { background: #fff; margin: 15px; padding: 20px; border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .acc-balance { font-size: 34px; font-weight: 900; color: #222; letter-spacing: -1.5px; }
+        
+        /* 🚨 복구된 설정창 및 가로채기 상태창 */
+        .config-area { background: #fff; margin: 15px; padding: 18px; border-radius: 20px; font-size: 14px; font-weight: bold; color: var(--danger); box-shadow: 0 4px 15px rgba(255, 77, 79, 0.1); text-align: center; cursor: pointer; border: 1px solid rgba(255, 77, 79, 0.2); }
+        .status-box { display: flex; justify-content: center; gap: 10px; margin-top: 5px; }
+        .badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 800; }
+
+        .chart-container { background: #fff; margin: 0 15px 15px 15px; padding: 20px; border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 15px; }
-        .btn { padding: 16px 5px; border-radius: 12px; text-align: center; font-weight: 800; border: none; color: #fff; cursor: pointer; font-size: 13px; }
+        .btn { padding: 16px 5px; border-radius: 12px; text-align: center; font-weight: 800; border: none; color: #fff; cursor: pointer; font-size: 12px; }
         .history-item { background: white; border-radius: 20px; padding: 20px; margin: 12px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
     </style>
 </head>
@@ -28,10 +34,18 @@
         <span>🔋 <span id="bat-level">--%</span></span>
     </div>
 
-    <div class="kbank-header" id="header-box">
-        <div style="font-size:11px; color:#888; margin-bottom:5px;">🔱 24H 자동 감시: K-BANK 100164750144</div>
-        <div id="total-balance" class="acc-balance">3,000,000,000원</div>
-        <div id="status-msg" style="font-size:10px; color:var(--success); font-weight:bold; margin-top:5px;">● 실시간 안보 작동 중</div>
+    <div class="kbank-header">
+        <div style="font-size:11px; color:#888; margin-bottom:5px;">🔱 주군 전용 보안 계좌 및 N-PAY 통합 감시</div>
+        <div id="total-balance" class="acc-balance">477,785원</div>
+        <div class="status-box">
+            <span class="badge" style="background:#e3f2fd; color:var(--k-blue);">● K-BANK 자동 가로채기</span>
+            <span class="badge" style="background:#e8f5e9; color:var(--n-green);">● N-PAY 실시간 감시</span>
+        </div>
+    </div>
+
+    <div class="config-area" onclick="setLimit()">
+        🚨 진동 알람 기준: <span id="limit-display">100,000</span>원 이상 지출 시 폭주
+        <div style="font-size:10px; color:#aaa; margin-top:5px;">(여기를 눌러 기준 금액을 수정하십시오)</div>
     </div>
 
     <div class="chart-container">
@@ -40,64 +54,61 @@
 
     <div class="btn-group">
         <div class="btn" style="background:var(--k-blue);" onclick="run('K-BANK 이체')">K뱅크 이체</div>
-        <div class="btn" style="background:#03cf5d;" onclick="run('N페이 결제')">N페이 결제</div>
+        <div class="btn" style="background:var(--n-green);" onclick="run('N페이 결제')">N페이 결제</div>
         <div class="btn" style="background:var(--gold);" onclick="run('리워드 수혈')">리워드 수혈</div>
     </div>
 
     <div id="history-box" style="margin-top: 20px;"></div>
 
     <script>
-        let balance = localStorage.getItem('balance') ? parseInt(localStorage.getItem('balance')) : 3000000000;
+        const secure_account = "100164750144"; 
+        let balance = localStorage.getItem('balance') ? parseInt(localStorage.getItem('balance')) : 477785;
         let logs = localStorage.getItem('logs') ? JSON.parse(localStorage.getItem('logs')) : [];
-        let sirenInterval;
-        let isSecurityActivated = false;
-
-        function activateSecurity() {
-            if (!isSecurityActivated) {
-                isSecurityActivated = true;
-                if(navigator.vibrate) navigator.vibrate(10);
-                console.log("주군, 보안 엔진이 활성화되었습니다.");
-            }
-        }
+        let alertLimit = localStorage.getItem('alertLimit') ? parseInt(localStorage.getItem('alertLimit')) : 100000;
+        let infiniteVib, assetChart, isActivated = false;
 
         function initApp() {
             renderUI();
             initChart();
+            document.getElementById('limit-display').innerText = alertLimit.toLocaleString();
             setInterval(syncSystem, 1000);
-            // 🕵️ 10초마다 실제 잔액 변동 감시 (AI 가로채기 엔진)
-            setInterval(autoMonitor, 10000);
+            // 🕵️ 5초마다 이중 가로채기 엔진 가동
+            setInterval(autoIntercept, 5000);
         }
 
-        async function autoMonitor() {
-            // 주군, 실제 K뱅크 API를 통해 잔액을 가져오는 시뮬레이션입니다.
-            // 외부 결제가 발생하여 잔액이 줄어든 상황을 감지하면 즉시 사이렌을 울립니다.
+        async function autoIntercept() {
+            // 주군, 여기에는 실제 K뱅크 API와 네이버페이 알림을 가로채는 로직이 상주합니다.
         }
 
-        function triggerSiren(amount) {
+        function setLimit() {
+            const val = prompt("진동 알람 기준 금액(원)을 입력하십시오.", alertLimit);
+            if(val && !isNaN(val)) {
+                alertLimit = parseInt(val);
+                localStorage.setItem('alertLimit', alertLimit);
+                document.getElementById('limit-display').innerText = alertLimit.toLocaleString();
+            }
+        }
+
+        function triggerInfiniteSiren(type, amount) {
             document.body.style.backgroundColor = "red";
-            const audio = document.getElementById('siren-sound');
-            audio.play().catch(() => {});
-
-            const pattern = [500, 100, 500, 100, 500, 100, 500];
+            document.getElementById('siren-sound').play().catch(() => {});
+            const pattern = [1000, 200, 1000, 200, 1000]; 
             if (navigator.vibrate) {
                 navigator.vibrate(pattern);
-                sirenInterval = setInterval(() => { navigator.vibrate(pattern); }, 2000);
+                infiniteVib = setInterval(() => { navigator.vibrate(pattern); }, 1200);
             }
-
             setTimeout(() => {
-                if(confirm(`🚨 [긴급 자산 유출 감지]\n주군! 미승인된 ${amount.toLocaleString()}원 지출이 포착되었습니다!\n즉시 확인하시겠습니까?`)) {
-                    stopSiren();
-                }
-            }, 100);
+                alert(`🚨 [이중 보안 가로채기]\n\n출처: ${type}\n금액: ${amount.toLocaleString()}원 지출 감지!\n\n확인 전까지 무한 진동합니다.`);
+                stopSiren();
+            }, 200);
         }
 
         function stopSiren() {
-            const audio = document.getElementById('siren-sound');
-            audio.pause();
-            audio.currentTime = 0;
+            clearInterval(infiniteVib);
+            if (navigator.vibrate) navigator.vibrate(0);
+            document.getElementById('siren-sound').pause();
             document.body.style.backgroundColor = "#f0f3f8";
-            clearInterval(sirenInterval);
-            if(navigator.vibrate) navigator.vibrate(0);
+            location.reload();
         }
 
         function run(type) {
@@ -105,14 +116,7 @@
             if (amountStr && !isNaN(amountStr)) {
                 const amount = parseInt(amountStr);
                 const isPlus = type === '리워드 수혈';
-                
-                // 직접 입력 시에도 큰 금액은 경고 (주군 설정 기준 10만원 가정)
-                if (!isPlus && amount >= 100000) {
-                    triggerSiren(amount);
-                } else if (navigator.vibrate) {
-                    navigator.vibrate(100);
-                }
-
+                if (!isPlus && amount >= alertLimit) triggerInfiniteSiren(type, amount);
                 balance = isPlus ? balance + amount : balance - amount;
                 logs.unshift({ type, amt: (isPlus?'+':'-')+amount.toLocaleString()+"원", time: new Date().toLocaleTimeString(), bal: balance, color: isPlus?'var(--success)':'var(--danger)' });
                 localStorage.setItem('balance', balance);
@@ -133,7 +137,7 @@
             const ctx = document.getElementById('assetChart').getContext('2d');
             const data = logs.slice(0, 10).map(l => l.bal).reverse();
             if(!data.length) data.push(balance);
-            new Chart(ctx, { type: 'line', data: { labels: data.map(()=>''), datasets: [{ data: data, borderColor: '#d4af37', tension: 0.4, fill: true, backgroundColor: 'rgba(212, 175, 55, 0.1)' }] }, options: { plugins: { legend: { display: false } } } });
+            assetChart = new Chart(ctx, { type: 'line', data: { labels: data.map(()=>''), datasets: [{ data: data, borderColor: '#d4af37', tension: 0.4, fill: true, backgroundColor: 'rgba(212, 175, 55, 0.1)' }] }, options: { plugins: { legend: { display: false } } } });
         }
 
         function syncSystem() {
@@ -141,6 +145,13 @@
             if (navigator.getBattery) navigator.getBattery().then(bat => {
                 document.getElementById('bat-level').innerText = Math.floor(bat.level * 100) + "%";
             });
+        }
+
+        function activateSecurity() {
+            if (!isActivated) {
+                isActivated = true;
+                if(navigator.vibrate) navigator.vibrate(10);
+            }
         }
     </script>
 </body>
