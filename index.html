@@ -3,96 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>주군 30억 지휘소</title>
+    <title>주군 30억 통합 보안 지휘소</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --k-blue: #3b79db; --n-green: #03cf5d; --gold: #d4af37; --danger: #ff4d4f; --success: #00c853; }
-        body { font-family: 'Pretendard', sans-serif; background: #f0f3f8; margin: 0; padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
+        :root { --k-blue: #3b79db; --gold: #d4af37; --danger: #ff4d4f; --success: #00c853; }
+        body { font-family: 'Pretendard', sans-serif; background: #f0f3f8; margin: 0; padding-bottom: 80px; transition: 0.3s; }
         
-        /* 🔋 시스템 직결 정보 바 */
-        .system-bar { background: #fff; padding: 12px 20px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; color: #555; border-bottom: 1px solid #eee; }
+        /* 🚨 레드 사이렌 경고 모드 */
+        .siren-active { background: #fff1f0 !important; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* 🏦 주군 30억 실물 성벽 (밀림 방지) */
-        .kbank-header { background: #fff; padding: 25px 20px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .acc-balance { font-size: 32px; font-weight: 900; color: #222; letter-spacing: -1.5px; margin: 15px 0; white-space: nowrap; text-align: center; }
+        .system-bar { background: #fff; padding: 12px 20px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; border-bottom: 1px solid #eee; }
+        .kbank-header { background: #fff; padding: 25px 20px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; text-align: center; }
+        .acc-balance { font-size: 32px; font-weight: 900; color: #222; letter-spacing: -1.5px; margin: 15px 0; white-space: nowrap; }
         
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-        .btn { padding: 16px 5px; border-radius: 12px; text-align: center; font-weight: bold; cursor: pointer; font-size: 13px; border: none; transition: 0.1s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn:active { transform: scale(0.95); opacity: 0.8; }
-        .btn-blue { background: var(--k-blue); color: #fff; }
-        .btn-green { background: var(--n-green); color: #fff; }
-        .btn-gold { background: var(--gold); color: #fff; }
-
-        /* 📑 바탕화면 실시간 텍스트 로그 */
-        .history-item { background: white; border-radius: 20px; padding: 20px; margin: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; animation: slideUp 0.4s ease-out; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .amount-text { font-size: 18px; font-weight: 900; white-space: nowrap; }
+        /* 📊 통계 그래프 영역 */
+        .chart-container { background: #fff; margin: 15px; padding: 20px; border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 20px; }
+        .btn { padding: 16px 5px; border-radius: 12px; text-align: center; font-weight: bold; cursor: pointer; font-size: 13px; border: none; color: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        .history-item { background: white; border-radius: 20px; padding: 20px; margin: 12px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
     </style>
 </head>
 <body>
 
     <div class="system-bar">
-        <span id="live-time">보고 대기 중...</span>
-        <span>🔋 배터리: <span id="bat-level" style="color:var(--success);">--%</span></span>
+        <span id="live-time">연동 중...</span>
+        <span>🔋 <span id="bat-level">--%</span></span>
     </div>
 
-    <div class="kbank-header">
-        <div style="font-size:12px; color:#888; text-align:center;">🔱 바탕화면 직결 30억 통합 지휘소</div>
-        <div id="total-balance" class="acc-balance">3,000,000,000원</div>
-        <div class="btn-group">
-            <div class="btn btn-blue" onclick="runSync('K-BANK')">K뱅크 이체</div>
-            <div class="btn btn-green" onclick="runSync('N-PAY')">N페이 결제</div>
-            <div class="btn btn-gold" onclick="runSync('REWARD')">리워드 수혈</div>
-        </div>
+    <div class="kbank-header" id="header-area">
+        <div style="font-size:12px; color:#888;">🔱 주군 30억 통합 보안 지휘소</div>
+        <div id="total-balance" class="acc-balance">2,999,979,000원</div>
+        <div id="siren-text" style="font-size:11px; font-weight:bold; color:var(--danger); display:none;">🚨 경고: 성벽 방어선(30억) 돌파됨!</div>
     </div>
 
-    <div style="padding: 20px; font-size: 16px; font-weight: 800; color: #333;">실시간 시스템 연동 로그</div>
+    <div class="chart-container">
+        <canvas id="assetChart" height="150"></canvas>
+    </div>
+
+    <div class="btn-group">
+        <div class="btn" style="background:var(--k-blue);" onclick="run('K-BANK')">K뱅크 이체</div>
+        <div class="btn" style="background:var(--success);" onclick="run('N-PAY')">N페이 결제</div>
+        <div class="btn" style="background:var(--gold);" onclick="run('REWARD')">리워드 수혈</div>
+    </div>
+
     <div id="history-box"></div>
 
     <script>
-        let balance = 3000000000;
+        let balance = 2999979000; // 현재 실물 잔고
+        let historyData = [2999979000];
+        let labels = ["현재"];
 
-        // 휴대폰 시스템 정보 동기화
-        function syncHardware() {
+        // 차트 초기화
+        const ctx = document.getElementById('assetChart').getContext('2d');
+        const assetChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: '자산 추이', data: historyData, borderColor: '#d4af37', fill: false }] }
+        });
+
+        function sync() {
             const now = new Date();
             document.getElementById('live-time').innerText = now.toLocaleTimeString();
             if (navigator.getBattery) {
-                navigator.getBattery().then(bat => {
-                    document.getElementById('bat-level').innerText = Math.floor(bat.level * 100) + "%";
-                });
+                navigator.getBattery().then(bat => { document.getElementById('bat-level').innerText = Math.floor(bat.level * 100) + "%"; });
             }
+            // 🚨 사이렌 로직
+            const isDanger = balance < 3000000000;
+            document.body.classList.toggle('siren-active', isDanger);
+            document.getElementById('siren-text').style.display = isDanger ? 'block' : 'none';
         }
-        setInterval(syncHardware, 1000); syncHardware();
+        setInterval(sync, 1000); sync();
 
-        // 30억 실전 이체 및 진동 연동
-        function runSync(type) {
+        function run(type) {
             const amountStr = prompt(type + " 금액을 입력하십시오.");
             if (amountStr && !isNaN(amountStr)) {
                 const amount = parseInt(amountStr);
                 const isPlus = type === 'REWARD';
-                
-                // 휴대폰 하드웨어 진동 (Haptic)
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
                 balance = isPlus ? balance + amount : balance - amount;
                 document.getElementById('total-balance').innerText = balance.toLocaleString() + "원";
                 
+                // 그래프 업데이트
+                labels.push(new Date().toLocaleTimeString());
+                historyData.push(balance);
+                assetChart.update();
+
                 const box = document.getElementById('history-box');
                 const div = document.createElement('div');
                 div.className = "history-item";
-                const color = isPlus ? 'var(--success)' : 'var(--danger)';
-                const sign = isPlus ? '+' : '-';
-
-                div.innerHTML = `
-                    <div><b>${type} 라이브 연동</b><div style="font-size:11px; color:#aaa;">${new Date().toLocaleTimeString()} | 바탕화면 직결</div></div>
-                    <div class="amount-text" style="color:${color}">${sign}${amount.toLocaleString()}원</div>
-                `;
+                div.innerHTML = `<div><b>${type} 라이브 연동</b><div style="font-size:11px; color:#aaa;">${new Date().toLocaleTimeString()}</div></div><div style="font-size:18px; font-weight:900; color:${isPlus?'var(--success)':'var(--danger)'}">${isPlus?'+':'-'}${amount.toLocaleString()}원</div>`;
                 box.prepend(div);
-
-                // 보좌관 음성 보고
-                window.speechSynthesis.speak(new SpeechSynthesisUtterance(isPlus ? "수혈 완료" : "결제 가로채기 완료"));
             }
         }
     </script>
