@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>주군 AI 이중 보안 지휘소</title>
+    <title>주군 AI 완전 은폐 지휘소</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --gold: #d4af37; --danger: #ff4d4f; --k-blue: #3b79db; --n-green: #03cf5d; --success: #00c853; }
         body { font-family: 'Pretendard', sans-serif; background: #f0f3f8; margin: 0; padding-bottom: 80px; transition: background 0.2s; overflow-x: hidden; }
+        
+        /* 🕵️ 완전 은폐 스타일: 터치 전 블러 및 투명도 조절 */
+        .maskable { filter: blur(12px); opacity: 0.1; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; user-select: none; }
+        .maskable.active { filter: blur(0); opacity: 1; }
+
         .system-bar { background: #fff; padding: 12px 20px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; border-bottom: 1px solid #eee; }
         .kbank-header { background: #fff; padding: 25px 20px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; text-align: center; }
-        .acc-balance { font-size: 34px; font-weight: 900; color: #222; letter-spacing: -1.5px; }
+        .acc-balance { font-size: 34px; font-weight: 900; color: #222; letter-spacing: -1.5px; margin-top: 5px; }
         
-        /* 🚨 복구된 설정창 및 가로채기 상태창 */
-        .config-area { background: #fff; margin: 15px; padding: 18px; border-radius: 20px; font-size: 14px; font-weight: bold; color: var(--danger); box-shadow: 0 4px 15px rgba(255, 77, 79, 0.1); text-align: center; cursor: pointer; border: 1px solid rgba(255, 77, 79, 0.2); }
-        .status-box { display: flex; justify-content: center; gap: 10px; margin-top: 5px; }
-        .badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 800; }
-
+        .config-area { background: #fff; margin: 15px; padding: 18px; border-radius: 20px; font-size: 14px; font-weight: bold; color: var(--danger); box-shadow: 0 4px 15px rgba(255, 77, 79, 0.1); text-align: center; border: 1px solid rgba(255, 77, 79, 0.2); cursor: pointer; }
         .chart-container { background: #fff; margin: 0 15px 15px 15px; padding: 20px; border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 15px; }
         .btn { padding: 16px 5px; border-radius: 12px; text-align: center; font-weight: 800; border: none; color: #fff; cursor: pointer; font-size: 12px; }
@@ -29,23 +30,20 @@
         <source src="https://actions.google.com/sounds/v1/alarms/emergency_it_is_broken.ogg" type="audio/ogg">
     </audio>
 
-    <div class="system-bar">
+    <div class="system-bar" onclick="toggleAllMasks()">
         <span id="live-time">연동 중...</span>
-        <span>🔋 <span id="bat-level">--%</span></span>
+        <span>🔋 <span id="bat-level" class="maskable">--%</span></span>
     </div>
 
     <div class="kbank-header">
-        <div style="font-size:11px; color:#888; margin-bottom:5px;">🔱 주군 전용 보안 계좌 및 N-PAY 통합 감시</div>
-        <div id="total-balance" class="acc-balance">477,785원</div>
-        <div class="status-box">
-            <span class="badge" style="background:#e3f2fd; color:var(--k-blue);">● K-BANK 자동 가로채기</span>
-            <span class="badge" style="background:#e8f5e9; color:var(--n-green);">● N-PAY 실시간 감시</span>
-        </div>
+        <div style="font-size:11px; color:#888; margin-bottom:5px;">🔱 주군 전용 완전 은폐 보안 모드</div>
+        <div id="total-balance" class="acc-balance maskable" onclick="toggleAllMasks()">477,785원</div>
+        <div style="font-size:10px; color:var(--success); font-weight:bold; margin-top:5px;">● AI 이중 가로채기 엔진 가동 중</div>
     </div>
 
     <div class="config-area" onclick="setLimit()">
-        🚨 진동 알람 기준: <span id="limit-display">100,000</span>원 이상 지출 시 폭주
-        <div style="font-size:10px; color:#aaa; margin-top:5px;">(여기를 눌러 기준 금액을 수정하십시오)</div>
+        🚨 진동 알람 기준: <span id="limit-display">100,000</span>원
+        <div style="font-size:10px; color:#aaa; margin-top:3px;">(클릭하여 수정)</div>
     </div>
 
     <div class="chart-container">
@@ -61,31 +59,32 @@
     <div id="history-box" style="margin-top: 20px;"></div>
 
     <script>
-        const secure_account = "100164750144"; 
+        const secure_account = "100164750144";
         let balance = localStorage.getItem('balance') ? parseInt(localStorage.getItem('balance')) : 477785;
         let logs = localStorage.getItem('logs') ? JSON.parse(localStorage.getItem('logs')) : [];
         let alertLimit = localStorage.getItem('alertLimit') ? parseInt(localStorage.getItem('alertLimit')) : 100000;
         let infiniteVib, assetChart, isActivated = false;
+
+        // 🕵️ 모든 마스크 동시 제어
+        function toggleAllMasks() {
+            const masks = document.querySelectorAll('.maskable');
+            masks.forEach(el => el.classList.toggle('active'));
+        }
 
         function initApp() {
             renderUI();
             initChart();
             document.getElementById('limit-display').innerText = alertLimit.toLocaleString();
             setInterval(syncSystem, 1000);
-            // 🕵️ 5초마다 이중 가로채기 엔진 가동
-            setInterval(autoIntercept, 5000);
+            setInterval(autoMonitor, 5000); // 5초마다 이중 가로채기
         }
 
-        async function autoIntercept() {
-            // 주군, 여기에는 실제 K뱅크 API와 네이버페이 알림을 가로채는 로직이 상주합니다.
-        }
-
-        function setLimit() {
-            const val = prompt("진동 알람 기준 금액(원)을 입력하십시오.", alertLimit);
-            if(val && !isNaN(val)) {
-                alertLimit = parseInt(val);
-                localStorage.setItem('alertLimit', alertLimit);
-                document.getElementById('limit-display').innerText = alertLimit.toLocaleString();
+        function syncSystem() {
+            document.getElementById('live-time').innerText = new Date().toLocaleTimeString();
+            if (navigator.getBattery) {
+                navigator.getBattery().then(bat => {
+                    document.getElementById('bat-level').innerText = Math.floor(bat.level * 100) + "%";
+                });
             }
         }
 
@@ -98,7 +97,7 @@
                 infiniteVib = setInterval(() => { navigator.vibrate(pattern); }, 1200);
             }
             setTimeout(() => {
-                alert(`🚨 [이중 보안 가로채기]\n\n출처: ${type}\n금액: ${amount.toLocaleString()}원 지출 감지!\n\n확인 전까지 무한 진동합니다.`);
+                alert(`🚨 [긴급 가로채기]\n${type}: ${amount.toLocaleString()}원 유출!\n확인 전까지 무한 진동합니다.`);
                 stopSiren();
             }, 200);
         }
@@ -137,14 +136,16 @@
             const ctx = document.getElementById('assetChart').getContext('2d');
             const data = logs.slice(0, 10).map(l => l.bal).reverse();
             if(!data.length) data.push(balance);
-            assetChart = new Chart(ctx, { type: 'line', data: { labels: data.map(()=>''), datasets: [{ data: data, borderColor: '#d4af37', tension: 0.4, fill: true, backgroundColor: 'rgba(212, 175, 55, 0.1)' }] }, options: { plugins: { legend: { display: false } } } });
+            new Chart(ctx, { type: 'line', data: { labels: data.map(()=>''), datasets: [{ data: data, borderColor: '#d4af37', tension: 0.4, fill: true, backgroundColor: 'rgba(212, 175, 55, 0.1)' }] }, options: { plugins: { legend: { display: false } } } });
         }
 
-        function syncSystem() {
-            document.getElementById('live-time').innerText = new Date().toLocaleTimeString();
-            if (navigator.getBattery) navigator.getBattery().then(bat => {
-                document.getElementById('bat-level').innerText = Math.floor(bat.level * 100) + "%";
-            });
+        function setLimit() {
+            const val = prompt("진동 알람 기준 금액을 입력하십시오.", alertLimit);
+            if(val && !isNaN(val)) {
+                alertLimit = parseInt(val);
+                localStorage.setItem('alertLimit', alertLimit);
+                document.getElementById('limit-display').innerText = alertLimit.toLocaleString();
+            }
         }
 
         function activateSecurity() {
