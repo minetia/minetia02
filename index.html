@@ -3,40 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>주군 30억 통합 보안 지휘소</title>
+    <title>주군 30억 영구 보존 지휘소</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --k-blue: #3b79db; --gold: #d4af37; --danger: #ff4d4f; --success: #00c853; }
-        body { font-family: 'Pretendard', sans-serif; background: #f0f3f8; margin: 0; padding-bottom: 80px; transition: 0.3s; }
-        
-        /* 🚨 레드 사이렌 경고 모드 */
-        .siren-active { background: #fff1f0 !important; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
+        body { font-family: 'Pretendard', sans-serif; background: #f0f3f8; margin: 0; padding-bottom: 80px; }
         .system-bar { background: #fff; padding: 12px 20px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; border-bottom: 1px solid #eee; }
         .kbank-header { background: #fff; padding: 25px 20px; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; text-align: center; }
-        .acc-balance { font-size: 32px; font-weight: 900; color: #222; letter-spacing: -1.5px; margin: 15px 0; white-space: nowrap; }
-        
-        /* 📊 통계 그래프 영역 */
+        .acc-balance { font-size: 32px; font-weight: 900; color: #222; letter-spacing: -1.5px; margin: 15px 0; }
         .chart-container { background: #fff; margin: 15px; padding: 20px; border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        
         .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 20px; }
-        .btn { padding: 16px 5px; border-radius: 12px; text-align: center; font-weight: bold; cursor: pointer; font-size: 13px; border: none; color: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        
-        .history-item { background: white; border-radius: 20px; padding: 20px; margin: 12px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
+        .btn { padding: 16px 5px; border-radius: 12px; text-align: center; font-weight: bold; cursor: pointer; font-size: 13px; border: none; color: #fff; }
+        .history-item { background: white; border-radius: 20px; padding: 20px; margin: 12px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body>
+<body onload="loadData()">
 
     <div class="system-bar">
         <span id="live-time">연동 중...</span>
         <span>🔋 <span id="bat-level">--%</span></span>
     </div>
 
-    <div class="kbank-header" id="header-area">
-        <div style="font-size:12px; color:#888;">🔱 주군 30억 통합 보안 지휘소</div>
-        <div id="total-balance" class="acc-balance">2,999,979,000원</div>
-        <div id="siren-text" style="font-size:11px; font-weight:bold; color:var(--danger); display:none;">🚨 경고: 성벽 방어선(30억) 돌파됨!</div>
+    <div class="kbank-header">
+        <div style="font-size:12px; color:#888;">🔱 주군 30억 영구 보존 지휘소</div>
+        <div id="total-balance" class="acc-balance">3,000,000,000원</div>
     </div>
 
     <div class="chart-container">
@@ -52,51 +43,77 @@
     <div id="history-box"></div>
 
     <script>
-        let balance = 2999979000; // 현재 실물 잔고
-        let historyData = [2999979000];
-        let labels = ["현재"];
+        // 💾 데이터 영구 저장 로직
+        let balance = localStorage.getItem('balance') ? parseInt(localStorage.getItem('balance')) : 3000000000;
+        let logs = localStorage.getItem('logs') ? JSON.parse(localStorage.getItem('logs')) : [];
 
-        // 차트 초기화
         const ctx = document.getElementById('assetChart').getContext('2d');
-        const assetChart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: labels, datasets: [{ label: '자산 추이', data: historyData, borderColor: '#d4af37', fill: false }] }
-        });
+        let assetChart;
 
-        function sync() {
-            const now = new Date();
-            document.getElementById('live-time').innerText = now.toLocaleTimeString();
-            if (navigator.getBattery) {
-                navigator.getBattery().then(bat => { document.getElementById('bat-level').innerText = Math.floor(bat.level * 100) + "%"; });
-            }
-            // 🚨 사이렌 로직
-            const isDanger = balance < 3000000000;
-            document.body.classList.toggle('siren-active', isDanger);
-            document.getElementById('siren-text').style.display = isDanger ? 'block' : 'none';
+        function initChart() {
+            const chartData = logs.slice(-10).map(l => l.bal).reverse();
+            if(chartData.length === 0) chartData.push(balance);
+            assetChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: chartData.map((_,i) => i), datasets: [{ label: '자산 추이', data: chartData, borderColor: '#d4af37', tension: 0.3 }] },
+                options: { scales: { y: { beginAtZero: false } } }
+            });
         }
-        setInterval(sync, 1000); sync();
+
+        function loadData() {
+            document.getElementById('total-balance').innerText = balance.toLocaleString() + "원";
+            const box = document.getElementById('history-box');
+            logs.forEach(log => addLogToUI(log, false));
+            initChart();
+            syncHardware();
+        }
 
         function run(type) {
             const amountStr = prompt(type + " 금액을 입력하십시오.");
             if (amountStr && !isNaN(amountStr)) {
                 const amount = parseInt(amountStr);
                 const isPlus = type === 'REWARD';
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-
                 balance = isPlus ? balance + amount : balance - amount;
-                document.getElementById('total-balance').innerText = balance.toLocaleString() + "원";
                 
-                // 그래프 업데이트
-                labels.push(new Date().toLocaleTimeString());
-                historyData.push(balance);
-                assetChart.update();
+                const newLog = {
+                    type: type,
+                    amt: (isPlus ? '+' : '-') + amount.toLocaleString() + "원",
+                    time: new Date().toLocaleTimeString(),
+                    bal: balance,
+                    color: isPlus ? 'var(--success)' : 'var(--danger)'
+                };
 
-                const box = document.getElementById('history-box');
-                const div = document.createElement('div');
-                div.className = "history-item";
-                div.innerHTML = `<div><b>${type} 라이브 연동</b><div style="font-size:11px; color:#aaa;">${new Date().toLocaleTimeString()}</div></div><div style="font-size:18px; font-weight:900; color:${isPlus?'var(--success)':'var(--danger)'}">${isPlus?'+':'-'}${amount.toLocaleString()}원</div>`;
-                box.prepend(div);
+                logs.unshift(newLog);
+                if(logs.length > 50) logs.pop(); // 최신 50개까지만 보존
+
+                // 🔐 로컬 저장소에 즉시 박제
+                localStorage.setItem('balance', balance);
+                localStorage.setItem('logs', JSON.stringify(logs));
+
+                document.getElementById('total-balance').innerText = balance.toLocaleString() + "원";
+                addLogToUI(newLog, true);
+                
+                assetChart.data.datasets[0].data.push(balance);
+                assetChart.update();
+                if (navigator.vibrate) navigator.vibrate(100);
             }
+        }
+
+        function addLogToUI(log, isNew) {
+            const box = document.getElementById('history-box');
+            const div = document.createElement('div');
+            div.className = "history-item";
+            div.innerHTML = `<div><b>${log.type} 라이브 연동</b><div style="font-size:11px; color:#aaa;">${log.time}</div></div><div style="font-size:18px; font-weight:900; color:${log.color}">${log.amt}</div>`;
+            isNew ? box.prepend(div) : box.appendChild(div);
+        }
+
+        function syncHardware() {
+            setInterval(() => {
+                document.getElementById('live-time').innerText = new Date().toLocaleTimeString();
+                if (navigator.getBattery) navigator.getBattery().then(bat => {
+                    document.getElementById('bat-level').innerText = Math.floor(bat.level * 100) + "%";
+                });
+            }, 1000);
         }
     </script>
 </body>
